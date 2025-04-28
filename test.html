@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>越吃越优惠城市分布图</title>
+    <!-- 引入echarts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <!-- 引入中国地图JS文件 -->
+    <script src="https://assets.pyecharts.org/assets/v5/maps/china.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background-color: #f8f8f8;
+        }
+        #container {
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            margin: 20px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            padding: 15px 20px;
+            background-color: #fff;
+            border-bottom: 1px solid #f0f0f0;
+            text-align: center;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+        #chart {
+            height: 550px;
+            width: 100%;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #888;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div class="header">
+            <h2>越吃越优惠城市分布图</h2>
+        </div>
+        <div id="chart">
+            <div class="loading">正在加载地图数据...</div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化ECharts实例
+        const chartDom = document.getElementById('chart');
+        const myChart = echarts.init(chartDom);
+        
+        // 城市数据
+        const data = [
+            {name: '上海', value: 6},
+            {name: '北京', value: 1},
+            {name: '南京', value: 2},
+            {name: '广州', value: 15},
+            {name: '杭州', value: 5},
+            {name: '海口', value: 1},
+            {name: '深圳', value: 10},
+            {name: '苏州', value: 2},
+            {name: '重庆', value: 1},
+            {name: '长沙', value: 2}
+        ];
+        
+        // 城市坐标
+        const geoCoordMap = {
+            '上海': [121.4648, 31.2891],
+            '北京': [116.4551, 40.2539],
+            '南京': [118.8062, 32.0857],
+            '广州': [113.5107, 23.2196],
+            '杭州': [120.1551, 30.2741],
+            '海口': [110.3893, 19.8516],
+            '深圳': [114.0579, 22.5431],
+            '苏州': [120.6519, 31.3989],
+            '重庆': [106.5504, 29.5533],
+            '长沙': [112.9834, 28.2568]
+        };
+        
+        // 将数据转换为地图点
+        const convertData = function(data) {
+            const res = [];
+            for (let i = 0; i < data.length; i++) {
+                const geoCoord = geoCoordMap[data[i].name];
+                if (geoCoord) {
+                    res.push({
+                        name: data[i].name,
+                        value: geoCoord.concat(data[i].value)
+                    });
+                }
+            }
+            return res;
+        };
+        
+        // 使用script标签加载的中国地图数据
+        // pyecharts的地图JS文件会自动注册名为"china"的地图
+        // 需要等待地图数据加载完成
+        window.addEventListener('load', function() {
+            // 等待一小段时间确保地图已加载
+            setTimeout(function() {
+                // 微信风格配置
+                const option = {
+                    backgroundColor: '#fff',
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: params => {
+                            if (params.seriesType === 'effectScatter') {
+                                return `${params.name}: ${params.value[2]}`;
+                            }
+                            return params.name;
+                        }
+                    },
+                    visualMap: {
+                        min: 1,
+                        max: 15,
+                        text: ['高', '低'],
+                        inRange: {
+                            color: ['#C8F5DC', '#31CC75', '#07C160'] // 微信绿色系列
+                        },
+                        calculable: true,
+                        textStyle: {
+                            color: '#666'
+                        },
+                        left: 20,
+                        bottom: 20
+                    },
+                    geo: {
+                        map: 'china',
+                        roam: true, // 可以缩放和平移
+                        zoom: 1.2,
+                        label: {
+                            show: false,
+                            color: '#333'
+                        },
+                        itemStyle: {
+                            areaColor: '#fafafa',
+                            borderColor: '#ddd',
+                            borderWidth: 0.5
+                        },
+                        emphasis: {
+                            itemStyle: {
+                                areaColor: '#f5f5f5'
+                            },
+                            label: {
+                                show: false
+                            }
+                        }
+                    },
+                    series: [
+                        {
+                            name: '热力值',
+                            type: 'effectScatter',
+                            coordinateSystem: 'geo',
+                            data: convertData(data),
+                            symbolSize: val => val[2] * 2.5,
+                            showEffectOn: 'render',
+                            rippleEffect: {
+                                brushType: 'stroke',
+                                scale: 3,
+                                period: 4
+                            },
+                            label: {
+                                formatter: '{b}',
+                                position: 'right',
+                                show: true,
+                                color: '#333',
+                                fontSize: 12,
+                                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                                padding: [4, 8],
+                                borderRadius: 3,
+                                distance: 5
+                            },
+                            itemStyle: {
+                                color: params => {
+                                    // 根据热力值变化颜色深浅
+                                    const value = params.value[2];
+                                    if (value >= 10) {
+                                        return '#07C160'; // 微信绿
+                                    } else if (value >= 5) {
+                                        return '#31CC75'; // 中等绿
+                                    } else {
+                                        return '#C8F5DC'; // 淡绿色
+                                    }
+                                },
+                                shadowBlur: 10,
+                                shadowColor: 'rgba(7, 193, 96, 0.4)'
+                            },
+                            zlevel: 1
+                        }
+                    ]
+                };
+                
+                // 设置配置项并渲染
+                myChart.setOption(option);
+                
+                // 清除加载提示
+                document.querySelector('.loading').style.display = 'none';
+            }, 500); // 给地图加载一些时间
+        });
+            
+        // 响应式调整
+        window.addEventListener('resize', function() {
+            myChart.resize();
+        });
+    </script>
+</body>
+</html>
